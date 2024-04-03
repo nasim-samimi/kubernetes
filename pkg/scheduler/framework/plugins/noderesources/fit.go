@@ -51,7 +51,8 @@ const (
 	preFilterStateKey = "PreFilter" + Name
 
 	// preScoreStateKey is the key in CycleState to NodeResourcesFit pre-computed data for Scoring.
-	preScoreStateKey = "PreScore" + Name
+	preScoreStateKey          = "PreScore" + Name
+	RTSafetyUtilizationFactor = 0.8
 )
 
 // nodeResourceStrategyTypeMap maps strategy to scorer implementation
@@ -207,6 +208,7 @@ func NewFit(_ context.Context, plArgs runtime.Object, h framework.Handle, fts fe
 func computePodResourceRequest(pod *v1.Pod) *preFilterState {
 	// pod hasn't scheduled yet so we don't need to worry about InPlacePodVerticalScalingEnabled
 	reqs := resource.PodRequests(pod, resource.PodResourcesOptions{})
+	reqs.RtUtil, reqs.RtCpu = framework.CalculatePodRtUtilAndCpu(pod)
 	result := &preFilterState{}
 	result.SetMaxResource(reqs)
 	return result
@@ -435,6 +437,7 @@ func fitsRequest(podRequest *preFilterState, nodeInfo *framework.NodeInfo, ignor
 	if podRequest.MilliCPU == 0 &&
 		podRequest.Memory == 0 &&
 		podRequest.EphemeralStorage == 0 &&
+		podRequest.RtUtil == 0 &&
 		len(podRequest.ScalarResources) == 0 {
 		return insufficientResources
 	}
@@ -465,6 +468,17 @@ func fitsRequest(podRequest *preFilterState, nodeInfo *framework.NodeInfo, ignor
 			Requested:    podRequest.EphemeralStorage,
 			Used:         nodeInfo.Requested.EphemeralStorage,
 			Capacity:     nodeInfo.Allocatable.EphemeralStorage,
+		})
+	}
+
+	if int64(RTSafetyUtilizationFactor*float64(podRequest.RtUtilization())) <
+		podRequest.RtUtilization()+podRequest.RtUtilization() {
+		insufficientResources = append(insufficientResources, InsufficientResource{
+			ResourceName: v1.ResourceRtUtilization,
+			Reason:       "Insufficient rt-utilization",
+			Requested:    podRequest.RtUtil,
+			Used:         nodeInfo.Requested.RtUtil,
+			Capacity:     nodeInfo.Allocatable.RtUtil,
 		})
 	}
 

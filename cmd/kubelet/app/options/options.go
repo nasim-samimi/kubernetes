@@ -517,4 +517,7 @@ func AddKubeletConfigFlags(mainfs *pflag.FlagSet, c *kubeletconfig.KubeletConfig
 	fs.BoolVar(&c.RegisterNode, "register-node", c.RegisterNode, "Register the node with the apiserver. If --kubeconfig is not provided, this flag is irrelevant, as the Kubelet won't have an apiserver to register with.")
 
 	fs.Var(&utilflag.RegisterWithTaintsVar{Value: &c.RegisterWithTaints}, "register-with-taints", "Register the node with the given list of taints (comma separated \"<key>=<value>:<effect>\"). No-op if register-node is false.")
+	fs.BoolVar(&c.RTHCBS, "rt-hcbs", c.RTHCBS, "Enables realtime hCBS scheduling of containers")
+	fs.DurationVar(&c.RTPeriod.Duration, "rt-period", c.RTPeriod.Duration, "Sets the the CPU period value, cpu.rt_perios_us")
+	fs.DurationVar(&c.RTRuntime.Duration, "rt-runtime", c.RTRuntime.Duration, "Sets the the CPU runtime value, cpu.rt_runtime_us")
 }

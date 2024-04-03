@@ -161,7 +161,7 @@ func (cm *FakeContainerManager) InternalContainerLifecycle() InternalContainerLi
 	cm.Lock()
 	defer cm.Unlock()
 	cm.CalledFunctions = append(cm.CalledFunctions, "InternalContainerLifecycle")
-	return &internalContainerLifecycleImpl{cpumanager.NewFakeManager(), memorymanager.NewFakeManager(), topologymanager.NewFakeManager()}
+	return &internalContainerLifecycleImpl{cpumanager.NewFakeManager(), memorymanager.NewFakeManager(), topologymanager.NewFakeManager(), cm}
 }
 
 func (cm *FakeContainerManager) GetPodCgroupRoot() string {

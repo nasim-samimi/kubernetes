@@ -3634,24 +3634,28 @@ type LinuxContainerResources struct {
 	CpuPeriod int64 `protobuf:"varint,1,opt,name=cpu_period,json=cpuPeriod,proto3" json:"cpu_period,omitempty"`
 	// CPU CFS (Completely Fair Scheduler) quota. Default: 0 (not specified).
 	CpuQuota int64 `protobuf:"varint,2,opt,name=cpu_quota,json=cpuQuota,proto3" json:"cpu_quota,omitempty"`
+
+	CpuRtPeriod  int64 `protobuf:"varint,3,opt,name=cpu_rt_period,json=cpuRtPeriod,proto3" json:"cpu_rt_period,omitempty"`
+	CpuRtRuntime int64 `protobuf:"varint,4,opt,name=cpu_rt_runtime,json=cpuRtRuntime,proto3" json:"cpu_rt_runtime,omitempty"`
+	CpuRt        int64 `protobuf:"varint,5,opt,name=cpu_rt,json=cpuRt,proto3" json:"cpu_rt,omitempty"`
 	// CPU shares (relative weight vs. other containers). Default: 0 (not specified).
-	CpuShares int64 `protobuf:"varint,3,opt,name=cpu_shares,json=cpuShares,proto3" json:"cpu_shares,omitempty"`
+	CpuShares int64 `protobuf:"varint,6,opt,name=cpu_shares,json=cpuShares,proto3" json:"cpu_shares,omitempty"`
 	// Memory limit in bytes. Default: 0 (not specified).
-	MemoryLimitInBytes int64 `protobuf:"varint,4,opt,name=memory_limit_in_bytes,json=memoryLimitInBytes,proto3" json:"memory_limit_in_bytes,omitempty"`
+	MemoryLimitInBytes int64 `protobuf:"varint,7,opt,name=memory_limit_in_bytes,json=memoryLimitInBytes,proto3" json:"memory_limit_in_bytes,omitempty"`
 	// OOMScoreAdj adjusts the oom-killer score. Default: 0 (not specified).
-	OomScoreAdj int64 `protobuf:"varint,5,opt,name=oom_score_adj,json=oomScoreAdj,proto3" json:"oom_score_adj,omitempty"`
+	OomScoreAdj int64 `protobuf:"varint,8,opt,name=oom_score_adj,json=oomScoreAdj,proto3" json:"oom_score_adj,omitempty"`
 	// CpusetCpus constrains the allowed set of logical CPUs. Default: "" (not specified).
-	CpusetCpus string `protobuf:"bytes,6,opt,name=cpuset_cpus,json=cpusetCpus,proto3" json:"cpuset_cpus,omitempty"`
+	CpusetCpus string `protobuf:"bytes,9,opt,name=cpuset_cpus,json=cpusetCpus,proto3" json:"cpuset_cpus,omitempty"`
 	// CpusetMems constrains the allowed set of memory nodes. Default: "" (not specified).
-	CpusetMems string `protobuf:"bytes,7,opt,name=cpuset_mems,json=cpusetMems,proto3" json:"cpuset_mems,omitempty"`
+	CpusetMems string `protobuf:"bytes,10,opt,name=cpuset_mems,json=cpusetMems,proto3" json:"cpuset_mems,omitempty"`
 	// List of HugepageLimits to limit the HugeTLB usage of container per page size. Default: nil (not specified).
-	HugepageLimits []*HugepageLimit `protobuf:"bytes,8,rep,name=hugepage_limits,json=hugepageLimits,proto3" json:"hugepage_limits,omitempty"`
+	HugepageLimits []*HugepageLimit `protobuf:"bytes,11,rep,name=hugepage_limits,json=hugepageLimits,proto3" json:"hugepage_limits,omitempty"`
 	// Unified resources for cgroup v2. Default: nil (not specified).
 	// Each key/value in the map refers to the cgroup v2.
 	// e.g. "memory.max": "6937202688" or "io.weight": "default 100".
-	Unified map[string]string `protobuf:"bytes,9,rep,name=unified,proto3" json:"unified,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	Unified map[string]string `protobuf:"bytes,12,rep,name=unified,proto3" json:"unified,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// Memory swap limit in bytes. Default 0 (not specified).
-	MemorySwapLimitInBytes int64    `protobuf:"varint,10,opt,name=memory_swap_limit_in_bytes,json=memorySwapLimitInBytes,proto3" json:"memory_swap_limit_in_bytes,omitempty"`
+	MemorySwapLimitInBytes int64    `protobuf:"varint,13,opt,name=memory_swap_limit_in_bytes,json=memorySwapLimitInBytes,proto3" json:"memory_swap_limit_in_bytes,omitempty"`
 	XXX_NoUnkeyedLiteral   struct{} `json:"-"`
 	XXX_sizecache          int32    `json:"-"`
 }
@@ -3675,6 +3679,26 @@ func (m *LinuxContainerResources) XXX_Marshal(b []byte, deterministic bool) ([]b
 		}
 		return b[:n], nil
 	}
+}
+func (m *LinuxContainerResources) GetCpuRtPeriod() int64 {
+	if m != nil {
+		return m.CpuRtPeriod
+	}
+	return 0
+}
+
+func (m *LinuxContainerResources) GetCpuRtRuntime() int64 {
+	if m != nil {
+		return m.CpuRtRuntime
+	}
+	return 0
+}
+
+func (m *LinuxContainerResources) GetCpuRt() int64 {
+	if m != nil {
+		return m.CpuRt
+	}
+	return 0
 }
 func (m *LinuxContainerResources) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_LinuxContainerResources.Merge(m, src)
@@ -20845,6 +20869,15 @@ func (m *LinuxContainerResources) Size() (n int) {
 	if m.CpuQuota != 0 {
 		n += 1 + sovApi(uint64(m.CpuQuota))
 	}
+	if m.CpuRtPeriod != 0 {
+		n += 1 + sovApi(uint64(m.CpuRtPeriod))
+	}
+	if m.CpuRtRuntime != 0 {
+		n += 1 + sovApi(uint64(m.CpuRtRuntime))
+	}
+	if m.CpuRt != 0 {
+		n += 1 + sovApi(uint64(m.CpuRt))
+	}
 	if m.CpuShares != 0 {
 		n += 1 + sovApi(uint64(m.CpuShares))
 	}
@@ -23693,6 +23726,9 @@ func (this *LinuxContainerResources) String() string {
 	s := strings.Join([]string{`&LinuxContainerResources{`,
 		`CpuPeriod:` + fmt.Sprintf("%v", this.CpuPeriod) + `,`,
 		`CpuQuota:` + fmt.Sprintf("%v", this.CpuQuota) + `,`,
+		`CpuRtPeriod:` + fmt.Sprintf("%v", this.CpuRtPeriod) + `,`,
+		`CpuRtRuntime:` + fmt.Sprintf("%v", this.CpuRtRuntime) + `,`,
+		`CpuRt:` + fmt.Sprintf("%v", this.CpuRt) + `,`,
 		`CpuShares:` + fmt.Sprintf("%v", this.CpuShares) + `,`,
 		`MemoryLimitInBytes:` + fmt.Sprintf("%v", this.MemoryLimitInBytes) + `,`,
 		`OomScoreAdj:` + fmt.Sprintf("%v", this.OomScoreAdj) + `,`,
@@ -33502,6 +33538,63 @@ func (m *LinuxContainerResources) Unmarshal(dAtA []byte) error {
 			}
 		case 3:
 			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CpuRtPeriod", wireType)
+			}
+			m.CpuRtPeriod = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowApi
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.CpuRtPeriod |= int64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CpuRtRuntime", wireType)
+			}
+			m.CpuRtRuntime = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowApi
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.CpuRtRuntime |= int64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CpuRt", wireType)
+			}
+			m.CpuRt = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowApi
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.CpuRt |= int64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 6:
+			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field CpuShares", wireType)
 			}
 			m.CpuShares = 0
@@ -33519,7 +33612,7 @@ func (m *LinuxContainerResources) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 4:
+		case 7:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field MemoryLimitInBytes", wireType)
 			}
@@ -33538,7 +33631,7 @@ func (m *LinuxContainerResources) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 5:
+		case 8:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field OomScoreAdj", wireType)
 			}
@@ -33557,7 +33650,7 @@ func (m *LinuxContainerResources) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 6:
+		case 9:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field CpusetCpus", wireType)
 			}
@@ -33589,7 +33682,7 @@ func (m *LinuxContainerResources) Unmarshal(dAtA []byte) error {
 			}
 			m.CpusetCpus = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 7:
+		case 10:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field CpusetMems", wireType)
 			}
@@ -33621,7 +33714,7 @@ func (m *LinuxContainerResources) Unmarshal(dAtA []byte) error {
 			}
 			m.CpusetMems = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 8:
+		case 11:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field HugepageLimits", wireType)
 			}
@@ -33655,7 +33748,7 @@ func (m *LinuxContainerResources) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 9:
+		case 12:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Unified", wireType)
 			}
@@ -33782,7 +33875,7 @@ func (m *LinuxContainerResources) Unmarshal(dAtA []byte) error {
 			}
 			m.Unified[mapkey] = mapvalue
 			iNdEx = postIndex
-		case 10:
+		case 13:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field MemorySwapLimitInBytes", wireType)
 			}

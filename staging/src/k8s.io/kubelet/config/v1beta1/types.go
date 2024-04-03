@@ -462,6 +462,10 @@ type KubeletConfiguration struct {
 	// Default: "100ms"
 	// +optional
 	CPUCFSQuotaPeriod *metav1.Duration `json:"cpuCFSQuotaPeriod,omitempty"`
+
+	RTHCBS    *bool            `json:"rthcbs,omitempty"`
+	RTRuntime *metav1.Duration `json:"rtruntime,omitempty"`
+	RTPeriod  *metav1.Duration `json:"rtperiod,omitempty"`
 	// nodeStatusMaxImages caps the number of images reported in Node.status.images.
 	// The value must be greater than -2.
 	// Note: If -1 is specified, no cap will be applied. If 0 is specified, no image is returned.

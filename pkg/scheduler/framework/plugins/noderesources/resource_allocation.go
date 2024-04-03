@@ -70,6 +70,11 @@ func (r *resourceAllocationScorer) score(
 		requested[i] = req
 	}
 
+	// not sure about the changes I made here
+	allocUtilization, reqUtilization := calculateResourceRTUtilizationAllocatableRequest(nodeInfo, pod)
+	if reqUtilization != 0 {
+		allocatable[framework.RtUtilizationScale], requested[framework.RtUtilizationScale] = allocUtilization, reqUtilization
+	}
 	score := r.scorer(requested, allocatable)
 
 	if loggerV := logger.V(10); loggerV.Enabled() { // Serializing these maps is costly.
@@ -110,6 +115,19 @@ func (r *resourceAllocationScorer) calculateResourceAllocatableRequest(logger kl
 		}
 	}
 	logger.V(10).Info("Requested resource is omitted for node score calculation", "resourceName", resource)
+	return 0, 0
+}
+
+func calculateResourceRTUtilizationAllocatableRequest(nodeInfo *framework.NodeInfo, pod *v1.Pod) (int64, int64) {
+	allocatable := nodeInfo.Allocatable
+
+	rtUtil, _ := framework.CalculatePodRtUtilAndCpu(pod)
+
+	if rtUtil != 0 {
+		allocUtilization := allocatable.RtUtilization()
+		reqUtilization := nodeInfo.NonZeroRequested.RtUtilization() + rtUtil
+		return allocUtilization, reqUtilization
+	}
 	return 0, 0
 }
 

@@ -235,6 +235,10 @@ func NewContainerManager(mountUtil mount.Interface, cadvisorInterface cadvisor.I
 		return nil, err
 	}
 	capacity := cadvisor.CapacityFromMachineInfo(machineInfo)
+	if nodeConfig.EnforceRealTime {
+		capacity[v1.ResourceRtPeriod] = *resource.NewQuantity(nodeConfig.CpuRtPeriod.Microseconds(), resource.DecimalSI)
+		capacity[v1.ResourceRtRuntime] = *resource.NewQuantity(nodeConfig.CpuRtRuntime.Microseconds(), resource.DecimalSI)
+	}
 	for k, v := range capacity {
 		internalCapacity[k] = v
 	}
@@ -324,6 +328,7 @@ func NewContainerManager(mountUtil mount.Interface, cadvisorInterface cadvisor.I
 		cm.GetNodeAllocatableReservation(),
 		nodeConfig.KubeletRootDir,
 		cm.topologyManager,
+		cpumanager.NodeConfig{RTRuntime: nodeConfig.CpuRtRuntime, RTPeriod: nodeConfig.CpuRtPeriod},
 	)
 	if err != nil {
 		klog.ErrorS(err, "Failed to initialize cpu manager")
@@ -355,7 +360,7 @@ func NewContainerManager(mountUtil mount.Interface, cadvisorInterface cadvisor.I
 // otherwise it returns a no-op manager which essentially does nothing
 func (cm *containerManagerImpl) NewPodContainerManager() PodContainerManager {
 	if cm.NodeConfig.CgroupsPerQOS {
-		return &podContainerManagerImpl{
+		pcmi := &podContainerManagerImpl{
 			qosContainersInfo: cm.GetQOSContainersInfo(),
 			subsystems:        cm.subsystems,
 			cgroupManager:     cm.cgroupManager,
@@ -364,7 +369,11 @@ func (cm *containerManagerImpl) NewPodContainerManager() PodContainerManager {
 			// cpuCFSQuotaPeriod is in microseconds. NodeConfig.CPUCFSQuotaPeriod is time.Duration (measured in nano seconds).
 			// Convert (cm.CPUCFSQuotaPeriod) [nanoseconds] / time.Microsecond (1000) to get cpuCFSQuotaPeriod in microseconds.
 			cpuCFSQuotaPeriod: uint64(cm.CPUCFSQuotaPeriod / time.Microsecond),
+			hcbs:              cm.EnforceRealTime,
+			rtRuntime:         uint64(cm.CpuRtRuntime / time.Microsecond),
+			rtPeriod:          uint64(cm.CpuRtPeriod / time.Microsecond),
 		}
+		return pcmi
 	}
 	return &podContainerManagerNoop{
 		cgroupRoot: cm.cgroupRoot,
@@ -372,7 +381,7 @@ func (cm *containerManagerImpl) NewPodContainerManager() PodContainerManager {
 }
 
 func (cm *containerManagerImpl) InternalContainerLifecycle() InternalContainerLifecycle {
-	return &internalContainerLifecycleImpl{cm.cpuManager, cm.memoryManager, cm.topologyManager}
+	return &internalContainerLifecycleImpl{cm.cpuManager, cm.memoryManager, cm.topologyManager, cm}
 }
 
 // Create a cgroup container manager.
@@ -466,10 +475,10 @@ func (cm *containerManagerImpl) setupNode(activePods ActivePodsFunc) error {
 		if err := cm.createNodeAllocatableCgroups(); err != nil {
 			return err
 		}
-		err = cm.qosContainerManager.Start(cm.GetNodeAllocatableAbsolute, activePods)
-		if err != nil {
-			return fmt.Errorf("failed to initialize top level QOS containers: %v", err)
-		}
+		// err = cm.qosContainerManager.Start(cm.GetNodeAllocatableAbsolute, activePods)
+		// if err != nil {
+		// 	return fmt.Errorf("failed to initialize top level QOS containers: %v", err)
+		// }
 	}
 
 	// Enforce Node Allocatable (if required)
@@ -477,6 +486,11 @@ func (cm *containerManagerImpl) setupNode(activePods ActivePodsFunc) error {
 		return err
 	}
 
+	if cm.NodeConfig.CgroupsPerQOS {
+		if err = cm.qosContainerManager.Start(cm.GetNodeAllocatableAbsolute, activePods); err != nil {
+			return fmt.Errorf("failed to initialize top level QOS containers: %v", err)
+		}
+	}
 	systemContainers := []*systemContainer{}
 
 	if cm.SystemCgroupsName != "" {

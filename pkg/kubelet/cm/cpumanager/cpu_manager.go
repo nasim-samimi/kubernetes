@@ -29,6 +29,7 @@ import (
 	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1"
 	"k8s.io/klog/v2"
 
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/kubelet/cm/containermap"
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpumanager/state"
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpumanager/topology"
@@ -44,6 +45,10 @@ type ActivePodsFunc func() []*v1.Pod
 
 type runtimeService interface {
 	UpdateContainerResources(ctx context.Context, id string, resources *runtimeapi.ContainerResources) error
+}
+type NodeConfig struct {
+	RTPeriod  time.Duration
+	RTRuntime time.Duration
 }
 
 type policyName string
@@ -151,7 +156,7 @@ func (s *sourcesReadyStub) AddSource(source string) {}
 func (s *sourcesReadyStub) AllReady() bool          { return true }
 
 // NewManager creates new cpu manager based on provided policy
-func NewManager(cpuPolicyName string, cpuPolicyOptions map[string]string, reconcilePeriod time.Duration, machineInfo *cadvisorapi.MachineInfo, specificCPUs cpuset.CPUSet, nodeAllocatableReservation v1.ResourceList, stateFileDirectory string, affinity topologymanager.Store) (Manager, error) {
+func NewManager(cpuPolicyName string, cpuPolicyOptions map[string]string, reconcilePeriod time.Duration, machineInfo *cadvisorapi.MachineInfo, specificCPUs cpuset.CPUSet, nodeAllocatableReservation v1.ResourceList, stateFileDirectory string, affinity topologymanager.Store, nodeConfig NodeConfig) (Manager, error) {
 	var topo *topology.CPUTopology
 	var policy Policy
 	var err error
@@ -193,6 +198,36 @@ func NewManager(cpuPolicyName string, cpuPolicyOptions map[string]string, reconc
 		if err != nil {
 			return nil, fmt.Errorf("new static policy error: %w", err)
 		}
+	case PolicyRealTime:
+		var err error
+		topo, err = topology.Discover(machineInfo)
+		if err != nil {
+			return nil, fmt.Errorf("[cpumanager] unable to discovery topology: %v", err)
+		}
+		klog.Infof("[cpumanager] detected CPU topology: %v", topo)
+
+		reservedCPUs, ok := nodeAllocatableReservation[v1.ResourceCPU]
+		if !ok {
+			reservedCPUs = *resource.NewQuantity(0, resource.DecimalSI)
+			klog.Warningf("[cpumanager] unable to determine reserved CPU resources for real-time policy: not reserving any cpu")
+		}
+
+		period := nodeConfig.RTPeriod
+		if period == 0 {
+			// real time policy can't be initialized with zero period
+			return nil, fmt.Errorf("[cpumanager] real-time policy need a period greater than zero")
+		}
+		runtime := nodeConfig.RTRuntime
+		if runtime == 0 {
+			// real time policy can't be initialized with zero runtime
+			return nil, fmt.Errorf("[cpumanager] real-time policy need a runtime greater than zero")
+		}
+
+		// Take the ceiling of the reservation, since fractional CPUs cannot be
+		// exclusively allocated.
+		reservedCPUsFloat := float64(reservedCPUs.MilliValue()) / 1000
+		numReservedCPUs := int(math.Ceil(reservedCPUsFloat))
+		policy, _ = NewRealTimePolicy(topo, numReservedCPUs, specificCPUs, float64(runtime.Microseconds())/float64(period.Microseconds()))
 
 	default:
 		return nil, fmt.Errorf("unknown policy: \"%s\"", cpuPolicyName)
@@ -223,6 +258,9 @@ func (m *manager) Start(activePods ActivePodsFunc, sourcesReady config.SourcesRe
 	if err != nil {
 		klog.ErrorS(err, "Could not initialize checkpoint manager, please drain node and remove policy state file")
 		return err
+	}
+	if policyName(m.policy.Name()) == PolicyRealTime {
+		stateImpl = state.NewRtState(stateImpl)
 	}
 	m.state = stateImpl
 

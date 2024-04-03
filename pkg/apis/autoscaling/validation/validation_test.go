@@ -1316,7 +1316,7 @@ func TestValidateHorizontalPodAutoscaler(t *testing.T) {
 					}},
 				},
 			},
-			msg: "must be either Utilization, Value, or AverageValue",
+			msg: "must be either Utiliz, Value, or AverageValue",
 		}, {
 			horizontalPodAutoscaler: autoscaling.HorizontalPodAutoscaler{
 				ObjectMeta: metav1.ObjectMeta{Name: "myautoscaler", Namespace: metav1.NamespaceDefault},

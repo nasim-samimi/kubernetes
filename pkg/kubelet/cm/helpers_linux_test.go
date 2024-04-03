@@ -44,6 +44,16 @@ func getResourceList(cpu, memory string) v1.ResourceList {
 	}
 	return res
 }
+func getRTResourceList(period, runtime string) v1.ResourceList {
+	res := v1.ResourceList{}
+	if period != "" {
+		res[v1.ResourceRtPeriod] = resource.MustParse(period)
+	}
+	if runtime != "" {
+		res[v1.ResourceRtRuntime] = resource.MustParse(runtime)
+	}
+	return res
+}
 
 // getResourceRequirements returns a ResourceRequirements object
 func getResourceRequirements(requests, limits v1.ResourceList) v1.ResourceRequirements {
@@ -63,6 +73,8 @@ func TestResourceConfigForPod(t *testing.T) {
 	burstableMemory := memoryQuantity.Value()
 	burstablePartialShares := MilliCPUToShares(200)
 	burstableQuota := MilliCPUToQuota(200, int64(defaultQuotaPeriod))
+	burstablePeriod := uint64(123456)
+	burstableRuntime := int64(123)
 	guaranteedShares := MilliCPUToShares(100)
 	guaranteedQuota := MilliCPUToQuota(100, int64(defaultQuotaPeriod))
 	guaranteedTunedQuota := MilliCPUToQuota(100, int64(tunedQuotaPeriod))
@@ -193,6 +205,20 @@ func TestResourceConfigForPod(t *testing.T) {
 			quotaPeriod:      tunedQuotaPeriod,
 			expected:         &ResourceConfig{CPUShares: &burstablePartialShares},
 		},
+		"burstable-with-realtime": {
+			pod: &v1.Pod{
+				Spec: v1.PodSpec{
+					Containers: []v1.Container{
+						{
+							Resources: getResourceRequirements(getRTResourceList("123456", ""), getRTResourceList("", "123")),
+						},
+					},
+				},
+			},
+			enforceCPULimits: false,
+			quotaPeriod:      defaultQuotaPeriod,
+			expected:         &ResourceConfig{CPUShares: &minShares, CpuRtPeriod: &burstablePeriod, CpuRtRuntime: &burstableRuntime},
+		},
 		"guaranteed": {
 			pod: &v1.Pod{
 				Spec: v1.PodSpec{
@@ -292,6 +318,12 @@ func TestResourceConfigForPod(t *testing.T) {
 		if !reflect.DeepEqual(actual.Memory, testCase.expected.Memory) {
 			t.Errorf("unexpected result, test: %v, memory not as expected. Expected: %v, Actual:%v", testName, *testCase.expected.Memory, *actual.Memory)
 		}
+		if !reflect.DeepEqual(actual.CpuRtPeriod, testCase.expected.CpuRtPeriod) {
+			t.Errorf("unexpected result, test: %v, period not as expected", testName)
+		}
+		if !reflect.DeepEqual(actual.CpuRtRuntime, testCase.expected.CpuRtRuntime) {
+			t.Errorf("unexpected result, test: %v, runtime not as expected", testName)
+		}
 	}
 }
 
@@ -308,6 +340,8 @@ func TestResourceConfigForPodWithCustomCPUCFSQuotaPeriod(t *testing.T) {
 	burstableMemory := memoryQuantity.Value()
 	burstablePartialShares := MilliCPUToShares(200)
 	burstableQuota := MilliCPUToQuota(200, int64(defaultQuotaPeriod))
+	burstablePeriod := uint64(123456)
+	burstableRuntime := int64(123)
 	guaranteedShares := MilliCPUToShares(100)
 	guaranteedQuota := MilliCPUToQuota(100, int64(defaultQuotaPeriod))
 	guaranteedTunedQuota := MilliCPUToQuota(100, int64(tunedQuotaPeriod))
@@ -437,6 +471,20 @@ func TestResourceConfigForPodWithCustomCPUCFSQuotaPeriod(t *testing.T) {
 			enforceCPULimits: true,
 			quotaPeriod:      tunedQuotaPeriod,
 			expected:         &ResourceConfig{CPUShares: &burstablePartialShares},
+		},
+		"burstable-with-realtime": {
+			pod: &v1.Pod{
+				Spec: v1.PodSpec{
+					Containers: []v1.Container{
+						{
+							Resources: getResourceRequirements(getRTResourceList("123456", ""), getRTResourceList("", "123")),
+						},
+					},
+				},
+			},
+			enforceCPULimits: false,
+			quotaPeriod:      defaultQuotaPeriod,
+			expected:         &ResourceConfig{CPUShares: &minShares, CpuRtPeriod: &burstablePeriod, CpuRtRuntime: &burstableRuntime},
 		},
 		"guaranteed": {
 			pod: &v1.Pod{
@@ -675,6 +723,8 @@ func TestResourceConfigForPodWithEnforceMemoryQoS(t *testing.T) {
 	burstableMemory := memoryQuantity.Value()
 	burstablePartialShares := MilliCPUToShares(200)
 	burstableQuota := MilliCPUToQuota(200, int64(defaultQuotaPeriod))
+	burstablePeriod := uint64(123456)
+	burstableRuntime := int64(123)
 	guaranteedShares := MilliCPUToShares(100)
 	guaranteedQuota := MilliCPUToQuota(100, int64(defaultQuotaPeriod))
 	guaranteedTunedQuota := MilliCPUToQuota(100, int64(tunedQuotaPeriod))
@@ -804,6 +854,20 @@ func TestResourceConfigForPodWithEnforceMemoryQoS(t *testing.T) {
 			enforceCPULimits: true,
 			quotaPeriod:      tunedQuotaPeriod,
 			expected:         &ResourceConfig{CPUShares: &burstablePartialShares, Unified: map[string]string{"memory.min": "209715200"}},
+		},
+		"burstable-with-realtime": {
+			pod: &v1.Pod{
+				Spec: v1.PodSpec{
+					Containers: []v1.Container{
+						{
+							Resources: getResourceRequirements(getRTResourceList("123456", ""), getRTResourceList("", "123")),
+						},
+					},
+				},
+			},
+			enforceCPULimits: false,
+			quotaPeriod:      defaultQuotaPeriod,
+			expected:         &ResourceConfig{CPUShares: &minShares, CpuRtPeriod: &burstablePeriod, CpuRtRuntime: &burstableRuntime},
 		},
 		"guaranteed": {
 			pod: &v1.Pod{

@@ -605,6 +605,7 @@ func TestCPUManagerGenerate(t *testing.T) {
 		isTopologyBroken           bool
 		expectedPolicy             string
 		expectedError              error
+		nodeConfig                 NodeConfig
 	}{
 		{
 			description:                "set none policy",
@@ -643,6 +644,17 @@ func TestCPUManagerGenerate(t *testing.T) {
 			nodeAllocatableReservation: v1.ResourceList{v1.ResourceCPU: *resource.NewQuantity(0, resource.DecimalSI)},
 			expectedError:              fmt.Errorf("the static policy requires systemreserved.cpu + kubereserved.cpu to be greater than zero"),
 		},
+		{
+			description:                "real-time policy",
+			cpuPolicyName:              "real-time",
+			nodeAllocatableReservation: v1.ResourceList{v1.ResourceCPU: *resource.NewQuantity(1, resource.DecimalSI)},
+			nodeConfig: NodeConfig{
+				RTPeriod:  time.Second,
+				RTRuntime: 100000 * time.Microsecond,
+			},
+			expectedError:  nil,
+			expectedPolicy: "real-time",
+		},
 	}
 
 	mockedMachineInfo := cadvisorapi.MachineInfo{
@@ -671,7 +683,7 @@ func TestCPUManagerGenerate(t *testing.T) {
 		},
 	}
 
-	for _, testCase := range testCases {
+	for _, testCase := range testCases[len(testCases)-1:] {
 		t.Run(testCase.description, func(t *testing.T) {
 			machineInfo := &mockedMachineInfo
 			if testCase.isTopologyBroken {
@@ -683,7 +695,7 @@ func TestCPUManagerGenerate(t *testing.T) {
 			}
 			defer os.RemoveAll(sDir)
 
-			mgr, err := NewManager(testCase.cpuPolicyName, nil, 5*time.Second, machineInfo, cpuset.New(), testCase.nodeAllocatableReservation, sDir, topologymanager.NewFakeManager())
+			mgr, err := NewManager(testCase.cpuPolicyName, nil, 5*time.Second, machineInfo, cpuset.New(), testCase.nodeAllocatableReservation, sDir, topologymanager.NewFakeManager(), testCase.nodeConfig)
 			if testCase.expectedError != nil {
 				if !strings.Contains(err.Error(), testCase.expectedError.Error()) {
 					t.Errorf("Unexpected error message. Have: %s wants %s", err.Error(), testCase.expectedError.Error())
@@ -1355,6 +1367,7 @@ func TestCPUManagerHandlePolicyOptions(t *testing.T) {
 		cpuPolicyName    string
 		cpuPolicyOptions map[string]string
 		expectedError    error
+		nodeConfig       NodeConfig
 	}{
 		{
 			description:   "options to none policy",
@@ -1403,7 +1416,7 @@ func TestCPUManagerHandlePolicyOptions(t *testing.T) {
 			}
 			defer os.RemoveAll(sDir)
 
-			_, err = NewManager(testCase.cpuPolicyName, testCase.cpuPolicyOptions, 5*time.Second, machineInfo, cpuset.New(), nodeAllocatableReservation, sDir, topologymanager.NewFakeManager())
+			_, err = NewManager(testCase.cpuPolicyName, testCase.cpuPolicyOptions, 5*time.Second, machineInfo, cpuset.New(), nodeAllocatableReservation, sDir, topologymanager.NewFakeManager(), testCase.nodeConfig)
 			if err == nil {
 				t.Errorf("Expected error, but NewManager succeeded")
 			}

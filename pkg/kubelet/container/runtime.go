@@ -334,6 +334,12 @@ type ContainerResources struct {
 	MemoryRequest *resource.Quantity
 	// Memory limit enforced on the container
 	MemoryLimit *resource.Quantity
+	// sched_deadline runtime request
+	RtRuntimeRequest *resource.Quantity
+	// sched_deadline period request
+	RtPeriodRequest *resource.Quantity
+	// sched_deadline number of cpu request
+	RtCpuRequest *resource.Quantity
 }
 
 // Status represents the status of a container.

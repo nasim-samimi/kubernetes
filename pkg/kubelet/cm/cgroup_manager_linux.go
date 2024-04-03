@@ -379,6 +379,12 @@ func (m *cgroupManagerImpl) toResources(resourceConfig *ResourceConfig) *libcont
 	if resourceConfig.PidsLimit != nil {
 		resources.PidsLimit = *resourceConfig.PidsLimit
 	}
+	if resourceConfig.CpuRtPeriod != nil {
+		resources.CpuRtPeriod = *resourceConfig.CpuRtPeriod
+	}
+	if resourceConfig.CpuRtRuntime != nil {
+		resources.CpuRtRuntime = *resourceConfig.CpuRtRuntime
+	}
 
 	m.maybeSetHugetlb(resourceConfig, resources)
 
@@ -575,6 +581,17 @@ func CpuWeightToCpuShares(cpuWeight uint64) uint64 {
 }
 
 func getCgroupv1CpuConfig(cgroupPath string) (*ResourceConfig, error) {
+	schedRuntime, errRT := fscommon.GetCgroupParamUint(cgroupPath, "cpu.sched_runtime_us")
+	cpuRTRuntime := int64(schedRuntime)
+	if errRT == nil {
+		// Assume other sched_deadline parameters are present if runtime is successfully read
+		schedPeriod, _ := fscommon.GetCgroupParamUint(cgroupPath, "cpu.sched_period_us")
+
+		return &ResourceConfig{
+			CpuRtRuntime: &cpuRTRuntime,
+			CpuRtPeriod:  &schedPeriod,
+		}, nil
+	}
 	cpuQuotaStr, errQ := fscommon.GetCgroupParamString(cgroupPath, "cpu.cfs_quota_us")
 	if errQ != nil {
 		return nil, fmt.Errorf("failed to read CPU quota for cgroup %v: %v", cgroupPath, errQ)
@@ -593,8 +610,39 @@ func getCgroupv1CpuConfig(cgroupPath string) (*ResourceConfig, error) {
 	}
 	return &ResourceConfig{CPUShares: &cpuShares, CPUQuota: &cpuQuota, CPUPeriod: &cpuPeriod}, nil
 }
+func getSchedDeadlineConfig(cgroupPath string) (*int64, *uint64, error) {
+	// Hypothetical example assuming you can read these parameters from a custom interface or extended cgroup files,
+	// which doesn't exist by default for sched_deadline in current Linux kernels.
+
+	// For demonstration purposes only
+	schedRuntimeStr, errR := fscommon.GetCgroupParamString(cgroupPath, "cpu.rt_runtime_us")
+	if errR != nil {
+		return nil, nil, fmt.Errorf("failed to read sched_runtime for cgroup %v: %v", cgroupPath, errR)
+	}
+	schedRuntime, errConvR := strconv.ParseInt(schedRuntimeStr, 10, 64)
+	if errConvR != nil {
+		return nil, nil, fmt.Errorf("failed to convert sched_runtime to integer for cgroup %v: %v", cgroupPath, errConvR)
+	}
+
+	// Assuming sched_period_us is equivalent to sched_deadline_us for simplicity in this hypothetical context
+	schedPeriodStr, errP := fscommon.GetCgroupParamString(cgroupPath, "cpu.rt_period_us")
+	if errP != nil {
+		return nil, nil, fmt.Errorf("failed to read sched_period for cgroup %v: %v", cgroupPath, errP)
+	}
+	schedPeriod, errConvP := strconv.ParseUint(schedPeriodStr, 10, 64)
+	if errConvP != nil {
+		return nil, nil, fmt.Errorf("failed to convert sched_period to integer for cgroup %v: %v", cgroupPath, errConvP)
+	}
+
+	return &schedRuntime, &schedPeriod, nil
+}
 
 func getCgroupv2CpuConfig(cgroupPath string) (*ResourceConfig, error) {
+	schedRuntime, schedPeriod, errrt := getSchedDeadlineConfig(cgroupPath)
+	if errrt == nil {
+		return &ResourceConfig{CpuRtRuntime: schedRuntime, CpuRtPeriod: schedPeriod}, nil
+	}
+
 	var cpuLimitStr, cpuPeriodStr string
 	cpuLimitAndPeriod, err := fscommon.GetCgroupParamString(cgroupPath, "cpu.max")
 	if err != nil {
@@ -665,6 +713,25 @@ func (m *cgroupManagerImpl) GetCgroupConfig(name CgroupName, resource v1.Resourc
 
 func setCgroupv1CpuConfig(cgroupPath string, resourceConfig *ResourceConfig) error {
 	var cpuQuotaStr, cpuPeriodStr, cpuSharesStr string
+	var cpuRtPeriodStr, cpuRtRuntimeStr string
+	if resourceConfig.CpuRtPeriod != nil {
+		cpuRtPeriodStr = strconv.FormatUint(*resourceConfig.CpuRtPeriod, 10)
+		if err := os.WriteFile(filepath.Join(cgroupPath, "cpu.rt_period_us"), []byte(cpuRtPeriodStr), 0700); err != nil {
+			return fmt.Errorf("failed to write %v to %v: %v", cpuRtPeriodStr, cgroupPath, err)
+		}
+	}
+	if resourceConfig.CpuRtRuntime != nil {
+		cpuRtRuntimeStr = strconv.FormatInt(*resourceConfig.CpuRtRuntime, 10)
+		if err := os.WriteFile(filepath.Join(cgroupPath, "cpu.rt_runtime_us"), []byte(cpuRtRuntimeStr), 0700); err != nil {
+			return fmt.Errorf("failed to write %v to %v: %v", cpuRtRuntimeStr, cgroupPath, err)
+		}
+	}
+	if resourceConfig.CpuRtPeriod != nil {
+		cpuRtPeriodStr = strconv.FormatUint(*resourceConfig.CpuRtPeriod, 10)
+		if err := os.WriteFile(filepath.Join(cgroupPath, "cpu.rt_deadline_us"), []byte(cpuRtPeriodStr), 0700); err != nil {
+			return fmt.Errorf("failed to write %v to %v: %v", cpuRtPeriodStr, cgroupPath, err)
+		}
+	}
 	if resourceConfig.CPUQuota != nil {
 		cpuQuotaStr = strconv.FormatInt(*resourceConfig.CPUQuota, 10)
 		if err := os.WriteFile(filepath.Join(cgroupPath, "cpu.cfs_quota_us"), []byte(cpuQuotaStr), 0700); err != nil {
@@ -687,6 +754,24 @@ func setCgroupv1CpuConfig(cgroupPath string, resourceConfig *ResourceConfig) err
 }
 
 func setCgroupv2CpuConfig(cgroupPath string, resourceConfig *ResourceConfig) error {
+	if resourceConfig.CpuRtPeriod != nil {
+		cpuRtPeriodStr := strconv.FormatUint(*resourceConfig.CpuRtPeriod, 10)
+		if err := os.WriteFile(filepath.Join(cgroupPath, "cpu.rt_period_us"), []byte(cpuRtPeriodStr), 0700); err != nil {
+			return fmt.Errorf("failed to write %v to %v: %v", cpuRtPeriodStr, cgroupPath, err)
+		}
+	}
+	if resourceConfig.CpuRtRuntime != nil {
+		cpuRtRuntimeStr := strconv.FormatInt(*resourceConfig.CpuRtRuntime, 10)
+		if err := os.WriteFile(filepath.Join(cgroupPath, "cpu.rt_runtime_us"), []byte(cpuRtRuntimeStr), 0700); err != nil {
+			return fmt.Errorf("failed to write %v to %v: %v", cpuRtRuntimeStr, cgroupPath, err)
+		}
+	}
+	if resourceConfig.CpuRtPeriod != nil {
+		cpuRtPeriodStr := strconv.FormatUint(*resourceConfig.CpuRtPeriod, 10)
+		if err := os.WriteFile(filepath.Join(cgroupPath, "cpu.rt_deadline_us"), []byte(cpuRtPeriodStr), 0700); err != nil {
+			return fmt.Errorf("failed to write %v to %v: %v", cpuRtPeriodStr, cgroupPath, err)
+		}
+	}
 	if resourceConfig.CPUQuota != nil {
 		if resourceConfig.CPUPeriod == nil {
 			return fmt.Errorf("CpuPeriod must be specified in order to set CpuLimit")

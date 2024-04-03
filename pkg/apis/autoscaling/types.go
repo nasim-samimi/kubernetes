@@ -348,7 +348,7 @@ type MetricTargetType string
 
 const (
 	// UtilizationMetricType is a possible value for MetricTarget.Type.
-	UtilizationMetricType MetricTargetType = "Utilization"
+	UtilizationMetricType MetricTargetType = "Utiliz"
 	// ValueMetricType is a possible value for MetricTarget.Type.
 	ValueMetricType MetricTargetType = "Value"
 	// AverageValueMetricType is a possible value for MetricTarget.Type.

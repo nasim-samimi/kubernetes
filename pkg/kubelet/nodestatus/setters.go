@@ -293,6 +293,18 @@ func MachineInfo(nodeName string,
 			for rName, rCap := range cadvisor.CapacityFromMachineInfo(info) {
 				node.Status.Capacity[rName] = rCap
 			}
+			capacity := capacityFunc()
+			if capacity != nil {
+				rtPeriod, periodExists := capacity[v1.ResourceRtPeriod]
+				rtRuntime, runtimeExists := capacity[v1.ResourceRtRuntime]
+				if runtimeExists && periodExists {
+					node.Status.Capacity[v1.ResourceRtPeriod] = rtPeriod
+					node.Status.Capacity[v1.ResourceRtRuntime] = rtRuntime
+				}
+				if runtimeExists != periodExists {
+					return fmt.Errorf("only one between rtRuntime or rtPeriod resource has been specified")
+				}
+			}
 
 			if podsPerCore > 0 {
 				node.Status.Capacity[v1.ResourcePods] = *resource.NewQuantity(

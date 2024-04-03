@@ -1356,3 +1356,10 @@ func TestIsFit(t *testing.T) {
 		})
 	}
 }
+
+func writeRtResources(rl v1.ResourceList, rtPeriod, rtRuntime, rtCpus int64) v1.ResourceList {
+	rl[v1.ResourceRtPeriod] = *resource.NewQuantity(rtPeriod, resource.DecimalSI)
+	rl[v1.ResourceRtRuntime] = *resource.NewQuantity(rtRuntime, resource.DecimalSI)
+	rl[v1.ResourceRtCpu] = *resource.NewQuantity(rtCpus, resource.DecimalSI)
+	return rl
+}

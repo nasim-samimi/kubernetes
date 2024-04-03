@@ -23,7 +23,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/core"
 )
 
-var supportedQoSComputeResources = sets.NewString(string(core.ResourceCPU), string(core.ResourceMemory))
+var supportedQoSComputeResources = sets.NewString(string(core.ResourceCPU), string(core.ResourceMemory), string(core.ResourceRtPeriod), string(core.ResourceRtRuntime), string(core.ResourceRtCpu))
 
 // QOSList is a set of (resource name, QoS class) pairs.
 type QOSList map[v1.ResourceName]v1.PodQOSClass

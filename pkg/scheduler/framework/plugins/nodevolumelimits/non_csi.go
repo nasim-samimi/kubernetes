@@ -65,6 +65,8 @@ const (
 
 	// KubeMaxPDVols defines the maximum number of PD Volumes per kubelet.
 	KubeMaxPDVols = "KUBE_MAX_PD_VOLS"
+
+	RTSafetyUtilizationFactor = 0.8
 )
 
 // AzureDiskName is the name of the plugin used in the plugin registry and configurations.

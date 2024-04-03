@@ -156,6 +156,9 @@ var standardContainerResources = sets.New(
 	core.ResourceCPU,
 	core.ResourceMemory,
 	core.ResourceEphemeralStorage,
+	core.ResourceRtPeriod,
+	core.ResourceRtRuntime,
+	core.ResourceRtCpu,
 )
 
 // IsStandardContainerResourceName returns true if the container can make a resource request
@@ -247,6 +250,12 @@ var standardResources = sets.New(
 	core.ResourceLimitsEphemeralStorage,
 	core.ResourcePods,
 	core.ResourceQuotas,
+	core.ResourceRtPeriod,
+	core.ResourceRtRuntime,
+	core.ResourceRtCpu,
+	core.ResourceRequestRtPeriod,
+	core.ResourceRequestRtRuntime,
+	core.ResourceRequestRtCpu,
 	core.ResourceServices,
 	core.ResourceReplicationControllers,
 	core.ResourceSecrets,

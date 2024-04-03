@@ -101,7 +101,9 @@ func (m *kubeGenericRuntimeManager) generateLinuxContainerResources(pod *v1.Pod,
 		cpuRequest = container.Resources.Requests.Cpu()
 	}
 	lcr := m.calculateLinuxResources(cpuRequest, container.Resources.Limits.Cpu(), container.Resources.Limits.Memory())
-
+	lcr.CpuRtPeriod = container.Resources.Requests.CpuRtPeriod().Value()
+	lcr.CpuRtRuntime = container.Resources.Requests.CpuRtRuntime().Value()
+	lcr.CpuRt = container.Resources.Requests.CpuRt().Value()
 	lcr.OomScoreAdj = int64(qos.GetContainerOOMScoreAdjust(pod, container,
 		int64(m.machineInfo.MemoryCapacity)))
 
@@ -298,6 +300,21 @@ func toKubeContainerResources(statusResources *runtimeapi.ContainerResources) *k
 	var cStatusResources *kubecontainer.ContainerResources
 	runtimeStatusResources := statusResources.GetLinux()
 	if runtimeStatusResources != nil {
+		var rtPeriodRequest, rtRuntimeRequest, rtCpuRequest *resource.Quantity
+		if runtimeStatusResources.CpuRtPeriod > 0 && runtimeStatusResources.CpuRtRuntime > 0 {
+			rtPeriodRequest = resource.NewQuantity(runtimeStatusResources.CpuRtPeriod, resource.DecimalSI)
+			rtRuntimeRequest = resource.NewQuantity(runtimeStatusResources.CpuRtRuntime, resource.DecimalSI)
+			rtCpuRequest = resource.NewQuantity(runtimeStatusResources.CpuRt, resource.DecimalSI)
+			// Conversion logic here, ensuring to translate the values into a format that's usable by Kubernetes
+			// This might involve converting these into a Kubernetes-friendly resource specification or annotations.
+		}
+		if rtPeriodRequest != nil || rtRuntimeRequest != nil || rtCpuRequest != nil {
+			cStatusResources = &kubecontainer.ContainerResources{
+				RtPeriodRequest:  rtPeriodRequest,
+				RtRuntimeRequest: rtRuntimeRequest,
+				RtCpuRequest:     rtCpuRequest,
+			}
+		}
 		var cpuLimit, memLimit, cpuRequest *resource.Quantity
 		if runtimeStatusResources.CpuPeriod > 0 {
 			milliCPU := quotaToMilliCPU(runtimeStatusResources.CpuQuota, runtimeStatusResources.CpuPeriod)

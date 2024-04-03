@@ -6108,6 +6108,9 @@ const (
 	ResourceStorage ResourceName = "storage"
 	// Local ephemeral storage, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
 	ResourceEphemeralStorage ResourceName = "ephemeral-storage"
+	ResourceRtPeriod         ResourceName = "rt_period"
+	ResourceRtRuntime        ResourceName = "rt_runtime"
+	ResourceRtCpu            ResourceName = "rt_cpu"
 )
 
 const (

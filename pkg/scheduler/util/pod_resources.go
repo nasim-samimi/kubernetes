@@ -41,6 +41,7 @@ const (
 func GetNonzeroRequests(requests *v1.ResourceList) (int64, int64) {
 	cpu := GetRequestForResource(v1.ResourceCPU, requests, true)
 	mem := GetRequestForResource(v1.ResourceMemory, requests, true)
+
 	return cpu.MilliValue(), mem.Value()
 
 }
@@ -65,6 +66,24 @@ func GetRequestForResource(resourceName v1.ResourceName, requests *v1.ResourceLi
 			return *resource.NewQuantity(DefaultMemoryRequest, resource.DecimalSI)
 		}
 		return requests.Memory().DeepCopy()
+	case v1.ResourceRtPeriod:
+		_, found := (*requests)[v1.ResourceRtPeriod]
+		if !found {
+			return resource.Quantity{}
+		}
+		return requests.CpuRtPeriod().DeepCopy()
+	case v1.ResourceRtRuntime:
+		_, found := (*requests)[v1.ResourceRtRuntime]
+		if !found {
+			return resource.Quantity{}
+		}
+		return requests.CpuRtRuntime().DeepCopy()
+	case v1.ResourceRtCpu:
+		_, found := (*requests)[v1.ResourceRtCpu]
+		if !found {
+			return resource.Quantity{}
+		}
+		return requests.CpuRtPeriod().DeepCopy()
 	default:
 		quantity, found := (*requests)[resourceName]
 		if !found {

@@ -39,6 +39,29 @@ func (rl *ResourceList) Storage() *resource.Quantity {
 	return rl.Name(ResourceStorage, resource.BinarySI)
 }
 
+func (rl *ResourceList) RtPeriod() *resource.Quantity {
+	if val, ok := (*rl)[ResourceRtPeriod]; ok {
+		return &val
+	}
+	return &resource.Quantity{Format: resource.BinarySI}
+}
+
+// TODO(stefano.fiori) document this
+func (rl *ResourceList) RtRuntime() *resource.Quantity {
+	if val, ok := (*rl)[ResourceRtRuntime]; ok {
+		return &val
+	}
+	return &resource.Quantity{Format: resource.BinarySI}
+}
+
+// TODO(stefano.fiori) document this
+func (rl *ResourceList) RtCpu() *resource.Quantity {
+	if val, ok := (*rl)[ResourceRtCpu]; ok {
+		return &val
+	}
+	return &resource.Quantity{Format: resource.BinarySI}
+}
+
 // Pods returns the list of pods
 func (rl *ResourceList) Pods() *resource.Quantity {
 	return rl.Name(ResourcePods, resource.DecimalSI)

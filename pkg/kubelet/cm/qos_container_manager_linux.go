@@ -101,7 +101,17 @@ func (m *qosContainerManagerImpl) Start(getNodeAllocatable func() v1.ResourceLis
 			minShares := uint64(MinShares)
 			resourceParameters.CPUShares = &minShares
 		}
-
+		if qosClass == v1.PodQOSBurstable {
+			res := getNodeAllocatable()
+			if !res.CpuRtPeriod().IsZero() {
+				period := uint64(res.CpuRtPeriod().Value())
+				resourceParameters.CpuRtPeriod = &period
+			}
+			if !res.CpuRtRuntime().IsZero() {
+				runtime := res.CpuRtRuntime().Value()
+				resourceParameters.CpuRtRuntime = &runtime
+			}
+		}
 		// containerConfig object stores the cgroup specifications
 		containerConfig := &CgroupConfig{
 			Name:               containerName,

@@ -367,7 +367,7 @@ type MetricTargetType string
 
 const (
 	// UtilizationMetricType declares a MetricTarget is an AverageUtilization value
-	UtilizationMetricType MetricTargetType = "Utilization"
+	UtilizationMetricType MetricTargetType = "Utiliz"
 	// ValueMetricType declares a MetricTarget is a raw value
 	ValueMetricType MetricTargetType = "Value"
 	// AverageValueMetricType declares a MetricTarget is an

@@ -250,7 +250,13 @@ func (m *kubeGenericRuntimeManager) startContainer(ctx context.Context, podSandb
 		m.recordContainerEvent(pod, container, "", v1.EventTypeWarning, events.FailedToCreateContainer, "Internal PreCreateContainer hook failed: %v", s.Message())
 		return s.Message(), ErrPreCreateHook
 	}
-
+	fmt.Println("## QUICKFIX")
+	fmt.Printf("containerConfig: %#v", containerConfig)
+	containerRtRuntime := containerConfig.GetLinux().GetResources().GetCpuRtRuntime()
+	if containerRtRuntime != 0 {
+		containerConfig.Linux.Resources.CpuRtRuntime = 0
+		containerConfig.Linux.Resources.CpuRtPeriod = 0
+	}
 	containerID, err := m.runtimeService.CreateContainer(ctx, podSandboxID, containerConfig, podSandboxConfig)
 	if err != nil {
 		s, _ := grpcstatus.FromError(err)

@@ -182,6 +182,14 @@ func getCgroupConfig(rl v1.ResourceList) *ResourceConfig {
 		val := MilliCPUToShares(q.MilliValue())
 		rc.CPUShares = &val
 	}
+	if q, exists := rl[v1.ResourceRtPeriod]; exists {
+		val := uint64(q.Value())
+		rc.CpuRtPeriod = &val
+	}
+	if q, exists := rl[v1.ResourceRtRuntime]; exists {
+		val := q.Value()
+		rc.CpuRtRuntime = &val
+	}
 	if q, exists := rl[pidlimit.PIDs]; exists {
 		val := q.Value()
 		rc.PidsLimit = &val
@@ -214,6 +222,8 @@ func (cm *containerManagerImpl) getNodeAllocatableAbsoluteImpl(capacity v1.Resou
 		}
 		result[k] = value
 	}
+	result[v1.ResourceRtPeriod] = *resource.NewQuantity(cm.CpuRtPeriod.Microseconds(), resource.DecimalSI)
+	result[v1.ResourceRtRuntime] = *resource.NewQuantity(cm.CpuRtRuntime.Microseconds(), resource.DecimalSI)
 	return result
 }
 

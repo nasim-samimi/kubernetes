@@ -228,6 +228,8 @@ func (in *KubeletConfiguration) DeepCopyInto(out *KubeletConfiguration) {
 	}
 	out.RuntimeRequestTimeout = in.RuntimeRequestTimeout
 	out.CPUCFSQuotaPeriod = in.CPUCFSQuotaPeriod
+	out.RTPeriod = in.RTPeriod
+	out.RTRuntime = in.RTRuntime
 	if in.MaxParallelImagePulls != nil {
 		in, out := &in.MaxParallelImagePulls, &out.MaxParallelImagePulls
 		*out = new(int32)

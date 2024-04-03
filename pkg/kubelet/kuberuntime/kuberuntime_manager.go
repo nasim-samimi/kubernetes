@@ -124,6 +124,9 @@ type kubeGenericRuntimeManager struct {
 
 	// CPUCFSQuotaPeriod sets the CPU CFS quota period value, cpu.cfs_period_us, defaults to 100ms
 	cpuCFSQuotaPeriod metav1.Duration
+	rtHCBSSched       bool
+	rtPeriod          metav1.Duration
+	rtRuntime         metav1.Duration
 
 	// wrapped image puller.
 	imagePuller images.ImageManager

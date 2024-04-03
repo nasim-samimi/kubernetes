@@ -157,6 +157,9 @@ type NodeConfig struct {
 	PodPidsLimit                            int64
 	EnforceCPULimits                        bool
 	CPUCFSQuotaPeriod                       time.Duration
+	EnforceRealTime                         bool
+	CpuRtPeriod                             time.Duration
+	CpuRtRuntime                            time.Duration
 	TopologyManagerPolicy                   string
 	TopologyManagerPolicyOptions            map[string]string
 }
