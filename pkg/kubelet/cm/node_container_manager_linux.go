@@ -224,8 +224,9 @@ func (cm *containerManagerImpl) getNodeAllocatableAbsoluteImpl(capacity v1.Resou
 	}
 	result[v1.ResourceRtPeriod] = *resource.NewQuantity(cm.CpuRtPeriod.Microseconds(), resource.DecimalSI)
 	result[v1.ResourceRtRuntime] = *resource.NewQuantity(cm.CpuRtRuntime.Microseconds(), resource.DecimalSI)
+	// result[v1.ResourceRtUtilization]
 	return result
-}
+} // TODO: add rtutil to capacity and add it to the above function
 
 // getNodeAllocatableInternalAbsolute is similar to getNodeAllocatableAbsolute except that
 // it also includes internal resources (currently process IDs).  It is intended for setting

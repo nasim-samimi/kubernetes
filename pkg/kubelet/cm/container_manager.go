@@ -127,6 +127,9 @@ type ContainerManager interface {
 	// might need to unprepare resources.
 	PodMightNeedToUnprepareResources(UID types.UID) bool
 
+	// Get Pod real-time utilization if real-time resources are enabled
+	// GetPodRTUtilization(*v1.Pod) float64
+
 	// Implements the PodResources Provider API
 	podresources.CPUsProvider
 	podresources.DevicesProvider
@@ -160,6 +163,7 @@ type NodeConfig struct {
 	EnforceRealTime                         bool
 	CpuRtPeriod                             time.Duration
 	CpuRtRuntime                            time.Duration
+	RtUtilization                           float64
 	TopologyManagerPolicy                   string
 	TopologyManagerPolicyOptions            map[string]string
 }

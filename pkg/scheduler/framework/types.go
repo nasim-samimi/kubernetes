@@ -591,14 +591,16 @@ type Resource struct {
 	MilliCPU         int64
 	Memory           int64
 	EphemeralStorage int64
+	RtUtil           int64
+	RtCpu            int64
 	// We store allowedPodNumber (which is Node.Status.Allocatable.Pods().Value())
 	// explicitly as int, to avoid conversions and improve performance.
 	AllowedPodNumber int
 	// ScalarResources
 	ScalarResources map[v1.ResourceName]int64
 	// Rt parameters
-	RtUtil int64
-	RtCpu  int64
+	RtPeriod  uint64
+	RtRuntime int64
 }
 
 // NewResource creates a Resource from ResourceList
@@ -618,7 +620,7 @@ func (r *Resource) Add(rl v1.ResourceList) {
 		switch rName {
 		case v1.ResourceCPU:
 			r.MilliCPU += rQuant.MilliValue()
-			r.RtCpu += rQuant.Value()
+			// r.RtCpu += rQuant.Value()
 		case v1.ResourceMemory:
 			r.Memory += rQuant.Value()
 		case v1.ResourcePods:
@@ -631,8 +633,8 @@ func (r *Resource) Add(rl v1.ResourceList) {
 			}
 		}
 	}
-	rtRuntime, rtPeriod := rl.CpuRtRuntime().Value(), rl.CpuRtPeriod().Value()
-	r.RtUtil += RtScaledUtilization(rtRuntime, rtPeriod, r.RtCpu)
+	// rtRuntime, rtPeriod := rl.CpuRtRuntime().Value(), rl.CpuRtPeriod().Value()
+	// r.RtUtil += RtScaledUtilization(rtRuntime, rtPeriod, r.RtCpu)
 }
 
 // Clone returns a copy of this resource.
@@ -642,8 +644,8 @@ func (r *Resource) Clone() *Resource {
 		Memory:           r.Memory,
 		AllowedPodNumber: r.AllowedPodNumber,
 		EphemeralStorage: r.EphemeralStorage,
-		RtUtil:           r.RtUtil,
-		RtCpu:            r.RtCpu,
+		// RtUtil:           r.RtUtil,
+		// RtCpu:            r.RtCpu,
 	}
 	if r.ScalarResources != nil {
 		res.ScalarResources = make(map[v1.ResourceName]int64, len(r.ScalarResources))
@@ -680,13 +682,9 @@ func (r *Resource) SetMaxResource(rl v1.ResourceList) {
 			r.Memory = max(r.Memory, rQuantity.Value())
 		case v1.ResourceCPU:
 			r.MilliCPU = max(r.MilliCPU, rQuantity.MilliValue())
-			if rtCpu := rQuantity.Value(); rtCpu > r.RtCpu {
-				r.RtCpu = rtCpu
-			}
-		case v1.ResourceRtCpu:
-			if rtCpu := rQuantity.Value(); rtCpu > r.RtCpu {
-				r.RtCpu = rtCpu
-			}
+		// 	r.RtCpu = max(r.RtCpu, rQuantity.Value())
+		// case v1.ResourceRtCpu:
+		// 	r.RtCpu = max(r.RtCpu, rQuantity.Value())
 		case v1.ResourceEphemeralStorage:
 			r.EphemeralStorage = max(r.EphemeralStorage, rQuantity.Value())
 		default:
@@ -695,8 +693,8 @@ func (r *Resource) SetMaxResource(rl v1.ResourceList) {
 			}
 		}
 	}
-	rtRuntime, rtPeriod, rtCpu := rl.CpuRtRuntime().Value(), rl.CpuRtPeriod().Value(), rl.CpuRt().Value()
-	r.RtUtil = RtScaledUtilization(rtRuntime, rtPeriod, rtCpu)
+	// rtRuntime, rtPeriod, rtCpu := rl.CpuRtRuntime().Value(), rl.CpuRtPeriod().Value(), rl.CpuRt().Value()
+	// r.RtUtil = RtScaledUtilization(rtRuntime, rtPeriod, rtCpu)
 }
 
 const (
@@ -704,20 +702,20 @@ const (
 	ResourceRtUtilization v1.ResourceName = "utilization"
 )
 
-func (r Resource) RtUtilization() int64 {
-	return r.RtUtil
-}
+// func (r *Resource) RtUtilization() int64 {
+// 	return r.RtUtil
+// }
 
-func RtScaledUtilization(runtime, period, cpus int64) int64 {
-	if cpus == 0 {
-		cpus = 1
-	}
+// func RtScaledUtilization(runtime, period, cpus int64) int64 {
+// 	if cpus == 0 {
+// 		cpus = 1
+// 	}
 
-	if period != 0 {
-		return int64((float64(runtime)/float64(period))*RtUtilizationScale) * cpus
-	}
-	return 0
-}
+// 	if period != 0 {
+// 		return int64((float64(runtime)/float64(period))*RtUtilizationScale) * cpus
+// 	}
+// 	return 0
+// }
 
 // NewNodeInfo returns a ready to use empty NodeInfo object.
 // If any pods are given in arguments, their information will be aggregated in
@@ -880,8 +878,7 @@ func (n *NodeInfo) RemovePod(logger klog.Logger, pod *v1.Pod) error {
 // The sign will be set to `+1` when AddPod and to `-1` when RemovePod.
 func (n *NodeInfo) update(pod *v1.Pod, sign int64) {
 	res, non0CPU, non0Mem := calculateResource(pod)
-	reqRtUtil, _ := CalculatePodRtUtilAndCpu(pod)
-	n.Requested.RtUtil += sign * reqRtUtil
+	// n.Requested.RtUtil += sign * res.RtUtil
 	n.Requested.MilliCPU += sign * res.MilliCPU
 	n.Requested.Memory += sign * res.Memory
 	n.Requested.EphemeralStorage += sign * res.EphemeralStorage
@@ -893,7 +890,7 @@ func (n *NodeInfo) update(pod *v1.Pod, sign int64) {
 	}
 	n.NonZeroRequested.MilliCPU += sign * non0CPU
 	n.NonZeroRequested.Memory += sign * non0Mem
-	n.NonZeroRequested.RtUtil += sign * reqRtUtil
+	// n.NonZeroRequested.RtUtil += sign * res.RtUtil
 
 	// Consume ports when pod added or release ports when pod removed.
 	n.updateUsedPorts(pod, sign > 0)
@@ -936,7 +933,7 @@ func calculateResource(pod *v1.Pod) (Resource, int64, int64) {
 	}
 	var res Resource
 	res.Add(requests)
-	res.RtUtil, res.RtCpu = CalculatePodRtUtilAndCpu(pod)
+	// res.RtUtil, res.RtCpu = CalculatePodRtUtilAndCpu(pod)
 	return res, non0CPU, non0Mem
 }
 
@@ -1112,24 +1109,25 @@ func (h HostPortInfo) sanitize(ip, protocol *string) {
 		*protocol = string(v1.ProtocolTCP)
 	}
 }
-func CalculatePodRtUtilAndCpu(pod *v1.Pod) (int64, int64) {
-	cpuSum := int64(0)
-	utilSum := int64(0)
 
-	for _, container := range pod.Spec.Containers {
-		rtPeriod := container.Resources.Requests.CpuRtPeriod().Value()
-		rtRuntime := container.Resources.Requests.CpuRtRuntime().Value()
-		rtCpus := container.Resources.Requests.CpuRt().Value()
+// func CalculatePodRtUtilAndCpu(pod *v1.Pod) (int64, int64) {
+// 	cpuSum := int64(0)
+// 	utilSum := int64(0)
 
-		if rtPeriod == 0 || rtRuntime == 0 {
-			continue
-		}
+// 	for _, container := range pod.Spec.Containers {
+// 		rtPeriod := container.Resources.Requests.CpuRtPeriod().Value()
+// 		rtRuntime := container.Resources.Requests.CpuRtRuntime().Value()
+// 		rtCpus := container.Resources.Requests.CpuRt().Value()
 
-		u := RtScaledUtilization(rtRuntime, rtPeriod, rtCpus)
-		// TODO(stefano.fiori): be careful here we can overflow, check it out
-		utilSum += u
-		cpuSum += rtCpus
-	}
+// 		if rtPeriod == 0 || rtRuntime == 0 {
+// 			continue
+// 		}
 
-	return utilSum, cpuSum
-}
+// 		u := RtScaledUtilization(rtRuntime, rtPeriod, rtCpus)
+// 		// TODO(stefano.fiori): be careful here we can overflow, check it out
+// 		utilSum += u
+// 		cpuSum += rtCpus
+// 	}
+
+// 	return utilSum, cpuSum
+// }

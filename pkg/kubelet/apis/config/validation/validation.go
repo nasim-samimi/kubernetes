@@ -76,6 +76,12 @@ func ValidateKubeletConfiguration(kc *kubeletconfig.KubeletConfiguration, featur
 	if localFeatureGate.Enabled(features.CPUCFSQuotaPeriod) && utilvalidation.IsInRange(int(kc.CPUCFSQuotaPeriod.Duration), int(1*time.Millisecond), int(time.Second)) != nil {
 		allErrors = append(allErrors, fmt.Errorf("invalid configuration: cpuCFSQuotaPeriod (--cpu-cfs-quota-period) %v must be between 1ms and 1sec, inclusive", kc.CPUCFSQuotaPeriod))
 	}
+	// if kc.RTHCBS && localFeatureGate.Enabled(features.CPUCFSQuotaPeriod) {
+	// 	allErrors = append(allErrors, fmt.Errorf("invalid configuration: cpuCFSQuota and RTHCBS are enabled at the same time"))
+	// }
+	// if kc.RTHCBS && kc.RTPeriod.Duration == 0 {
+	// 	allErrors = append(allErrors, fmt.Errorf("invalid configuration: RTPeriod must be set when RTHCBS is enabled"))
+	// }
 	if utilvalidation.IsInRange(int(kc.ImageGCHighThresholdPercent), 0, 100) != nil {
 		allErrors = append(allErrors, fmt.Errorf("invalid configuration: imageGCHighThresholdPercent (--image-gc-high-threshold) %v must be between 0 and 100, inclusive", kc.ImageGCHighThresholdPercent))
 	}

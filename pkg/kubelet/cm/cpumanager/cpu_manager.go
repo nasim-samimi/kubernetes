@@ -199,6 +199,7 @@ func NewManager(cpuPolicyName string, cpuPolicyOptions map[string]string, reconc
 			return nil, fmt.Errorf("new static policy error: %w", err)
 		}
 	case PolicyRealTime:
+		fmt.Println("PolicyRealTime is chosen")
 		var err error
 		topo, err = topology.Discover(machineInfo)
 		if err != nil {

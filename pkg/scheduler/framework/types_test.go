@@ -1683,8 +1683,8 @@ func TestNodeInfo_AddPodRT(t *testing.T) {
 								{
 									Resources: v1.ResourceRequirements{
 										Requests: v1.ResourceList{
-											v1.ResourcePeriod:  *resource.NewQuantity(100000, resource.DecimalSI),
-											v1.ResourceRuntime: *resource.NewQuantity(11000, resource.DecimalSI),
+											v1.ResourceRtPeriod:  *resource.NewQuantity(100000, resource.DecimalSI),
+											v1.ResourceRtRuntime: *resource.NewQuantity(11000, resource.DecimalSI),
 										},
 									},
 								},
@@ -1703,8 +1703,8 @@ func TestNodeInfo_AddPodRT(t *testing.T) {
 								{
 									Resources: v1.ResourceRequirements{
 										Requests: v1.ResourceList{
-											v1.ResourcePeriod:  *resource.NewQuantity(190000, resource.DecimalSI),
-											v1.ResourceRuntime: *resource.NewQuantity(77000, resource.DecimalSI),
+											v1.ResourceRtPeriod:  *resource.NewQuantity(190000, resource.DecimalSI),
+											v1.ResourceRtRuntime: *resource.NewQuantity(77000, resource.DecimalSI),
 										},
 									},
 								},
@@ -1717,8 +1717,8 @@ func TestNodeInfo_AddPodRT(t *testing.T) {
 				MilliCPU:         0,
 				Memory:           0,
 				EphemeralStorage: 0,
-				RtRuntime:        979000,
-				RtPeriod:         1900000,
+				RtUtil:           50004,
+				RtCpu:            2,
 				AllowedPodNumber: 0,
 				ScalarResources:  nil,
 			},
@@ -1727,16 +1727,16 @@ func TestNodeInfo_AddPodRT(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ni := fakeNodeInfo()
-			gen := ni.generation
+			gen := ni.Generation
 			for _, pod := range tt.args.pods {
 				ni.AddPod(pod)
-				if ni.generation <= gen {
-					t.Errorf("generation is not incremented. Prev: %v, current: %v", gen, ni.generation)
+				if ni.Generation <= gen {
+					t.Errorf("generation is not incremented. Prev: %v, current: %v", gen, ni.Generation)
 				}
 			}
 
-			if !reflect.DeepEqual(tt.want, *ni.requestedResource) {
-				t.Errorf("expected: %#v, got: %#v", tt.want, ni.requestedResource)
+			if !reflect.DeepEqual(tt.want, ni.Requested) {
+				t.Errorf("expected: %#v, got: %#v", tt.want, ni.Requested)
 			}
 		})
 	}
@@ -1772,8 +1772,8 @@ func TestNodeInfo_RemovePodRT(t *testing.T) {
 								{
 									Resources: v1.ResourceRequirements{
 										Requests: v1.ResourceList{
-											v1.ResourcePeriod:  *resource.NewQuantity(100000, resource.DecimalSI),
-											v1.ResourceRuntime: *resource.NewQuantity(11000, resource.DecimalSI),
+											v1.ResourceRtPeriod:  *resource.NewQuantity(100000, resource.DecimalSI),
+											v1.ResourceRtRuntime: *resource.NewQuantity(11000, resource.DecimalSI),
 										},
 									},
 								},
@@ -1792,8 +1792,8 @@ func TestNodeInfo_RemovePodRT(t *testing.T) {
 								{
 									Resources: v1.ResourceRequirements{
 										Requests: v1.ResourceList{
-											v1.ResourcePeriod:  *resource.NewQuantity(123000, resource.DecimalSI),
-											v1.ResourceRuntime: *resource.NewQuantity(13000, resource.DecimalSI),
+											v1.ResourceRtPeriod:  *resource.NewQuantity(123000, resource.DecimalSI),
+											v1.ResourceRtRuntime: *resource.NewQuantity(13000, resource.DecimalSI),
 										},
 									},
 								},
@@ -1812,8 +1812,8 @@ func TestNodeInfo_RemovePodRT(t *testing.T) {
 								{
 									Resources: v1.ResourceRequirements{
 										Requests: v1.ResourceList{
-											v1.ResourcePeriod:  *resource.NewQuantity(190000, resource.DecimalSI),
-											v1.ResourceRuntime: *resource.NewQuantity(77000, resource.DecimalSI),
+											v1.ResourceRtPeriod:  *resource.NewQuantity(190000, resource.DecimalSI),
+											v1.ResourceRtRuntime: *resource.NewQuantity(77000, resource.DecimalSI),
 										},
 									},
 								},
@@ -1832,8 +1832,8 @@ func TestNodeInfo_RemovePodRT(t *testing.T) {
 				MilliCPU:         0,
 				Memory:           0,
 				EphemeralStorage: 0,
-				RtRuntime:        979000,
-				RtPeriod:         1900000,
+				RtUtil:           50004,
+				RtCpu:            2,
 				AllowedPodNumber: 0,
 				ScalarResources:  nil,
 			},
@@ -1842,18 +1842,18 @@ func TestNodeInfo_RemovePodRT(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ni := fakeNodeInfo(tt.fields.pods...)
-
+			logger, _ := ktesting.NewTestContext(t)
 			fakePod := &v1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					UID: tt.args.podUID,
 				}}
 
-			if err := ni.RemovePod(fakePod); (err != nil) != tt.wantErr {
+			if err := ni.RemovePod(logger, fakePod); (err != nil) != tt.wantErr {
 				t.Errorf("RemovePod() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
-			if !reflect.DeepEqual(tt.want, *ni.requestedResource) {
-				t.Errorf("expected: %#v, got: %#v", tt.want, ni.requestedResource)
+			if !reflect.DeepEqual(tt.want, *ni.Requested) {
+				t.Errorf("expected: %#v, got: %#v", tt.want, ni.Requested)
 			}
 
 		})

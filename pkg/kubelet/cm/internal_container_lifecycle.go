@@ -18,7 +18,6 @@ package cm
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -94,7 +93,7 @@ func writeCpuRtMultiRuntimeFile(cgroupFs string, cpuSet cpuset.CPUSet, rtRuntime
 	rtRuntimeStr := strconv.FormatInt(rtRuntime, 10)
 	str := cpuSet.String() + " " + rtRuntimeStr
 
-	if err := ioutil.WriteFile(filePath, []byte(str), os.ModePerm); err != nil {
+	if err := os.WriteFile(filePath, []byte(str), os.ModePerm); err != nil {
 		return fmt.Errorf("writing %s in cpu.rt_multi_runtime_us, path %s: %v", str, filePath, err)
 	}
 	return nil
@@ -108,8 +107,8 @@ func writeRtFile(cgroupFs string, value int64) error {
 
 	str := strconv.FormatInt(value, 10)
 
-	if err := ioutil.WriteFile(cgroupFs, []byte(str), os.ModePerm); err != nil {
-		return fmt.Errorf("writing %s in cpu.rt_multi_runtime_us, path %s: %v", str, value, err)
+	if err := os.WriteFile(cgroupFs, []byte(str), os.ModePerm); err != nil {
+		return fmt.Errorf("writing %v in cpu.rt_multi_runtime_us, path %v: %v", str, value, err)
 	}
 	return nil
 }
@@ -120,7 +119,7 @@ func readCpuRtMultiRuntimeFile(cgroupFs string) ([]int64, error) {
 	)
 
 	filePath := filepath.Join(cgroupFs, CpuRtMultiRuntimeFile)
-	buf, err := ioutil.ReadFile(filePath)
+	buf, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, err
 	}

@@ -208,8 +208,8 @@ func NewFit(_ context.Context, plArgs runtime.Object, h framework.Handle, fts fe
 func computePodResourceRequest(pod *v1.Pod) *preFilterState {
 	// pod hasn't scheduled yet so we don't need to worry about InPlacePodVerticalScalingEnabled
 	reqs := resource.PodRequests(pod, resource.PodResourcesOptions{})
-	reqs.RtUtil, reqs.RtCpu = framework.CalculatePodRtUtilAndCpu(pod)
 	result := &preFilterState{}
+	// result.RtUtil, result.RtCpu = framework.CalculatePodRtUtilAndCpu(pod)
 	result.SetMaxResource(reqs)
 	return result
 }
@@ -437,7 +437,7 @@ func fitsRequest(podRequest *preFilterState, nodeInfo *framework.NodeInfo, ignor
 	if podRequest.MilliCPU == 0 &&
 		podRequest.Memory == 0 &&
 		podRequest.EphemeralStorage == 0 &&
-		podRequest.RtUtil == 0 &&
+		// podRequest.RtUtil == 0 &&
 		len(podRequest.ScalarResources) == 0 {
 		return insufficientResources
 	}
@@ -471,16 +471,17 @@ func fitsRequest(podRequest *preFilterState, nodeInfo *framework.NodeInfo, ignor
 		})
 	}
 
-	if int64(RTSafetyUtilizationFactor*float64(podRequest.RtUtilization())) <
-		podRequest.RtUtilization()+podRequest.RtUtilization() {
-		insufficientResources = append(insufficientResources, InsufficientResource{
-			ResourceName: v1.ResourceRtUtilization,
-			Reason:       "Insufficient rt-utilization",
-			Requested:    podRequest.RtUtil,
-			Used:         nodeInfo.Requested.RtUtil,
-			Capacity:     nodeInfo.Allocatable.RtUtil,
-		})
-	}
+	// if podRequest.RtUtil > 0 && podRequest.RtUtil > int64(RTSafetyUtilizationFactor*float64(nodeInfo.Allocatable.RtUtil-nodeInfo.Requested.RtUtil)) {
+	// 	insufficientResources = append(insufficientResources, InsufficientResource{
+	// 		ResourceName: "RTUtil",
+	// 		Reason:       "Insufficient rt-utilization",
+	// 		Requested:    podRequest.RtUtil,
+	// 		Used:         nodeInfo.Requested.RtUtil,
+	// 		Capacity:     nodeInfo.Allocatable.RtUtil,
+	// 	})
+	// 	fmt.Printf("RTUtil: %v, %v, %v\n", podRequest.RtUtil, nodeInfo.Requested.RtUtil, nodeInfo.Allocatable.RtUtil)
+	// }
+	// fmt.Printf("RTUtil: %v, %v, %v\n", podRequest.RtUtil, nodeInfo.Requested.RtUtil, nodeInfo.Allocatable.RtUtil)
 
 	for rName, rQuant := range podRequest.ScalarResources {
 		// Skip in case request quantity is zero

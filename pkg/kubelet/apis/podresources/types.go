@@ -53,6 +53,13 @@ type MemoryProvider interface {
 	GetAllocatableMemory() []*podresourcesapi.ContainerMemory
 }
 
+// type RtUtilsProvider interface {
+// 	// GetRtUtils returns information about the rtutils assigned to containers
+// 	GetRtUtils(podUID, containerName string) []*podresourcesapi.ContainerRtUtils
+// 	// GetAllocatableRtUtils returns the allocatable rtutils from the node
+// 	GetAllocatableRtUtils() []*podresourcesapi.ContainerRtUtils
+// }
+
 type DynamicResourcesProvider interface {
 	// GetDynamicResources returns information about dynamic resources assigned to pods and containers
 	GetDynamicResources(pod *v1.Pod, container *v1.Container) []*podresourcesapi.DynamicResource

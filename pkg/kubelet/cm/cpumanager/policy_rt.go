@@ -94,7 +94,7 @@ func (p *realTimePolicy) validateState(s state.State) error {
 
 	// 2. Check if state for real-time policy is consistent
 	for pod := range tmpAssignments {
-		for container, _ := range tmpAssignments[pod] {
+		for container := range tmpAssignments[pod] {
 			s.Delete(pod, container)
 		}
 	}

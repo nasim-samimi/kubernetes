@@ -293,7 +293,8 @@ func MachineInfo(nodeName string,
 			for rName, rCap := range cadvisor.CapacityFromMachineInfo(info) {
 				node.Status.Capacity[rName] = rCap
 			}
-			capacity := capacityFunc()
+			capacity := capacityFunc(localStorageCapacityIsolation)
+			fmt.Println("it came to setters.go, capacity:", capacity)
 			if capacity != nil {
 				rtPeriod, periodExists := capacity[v1.ResourceRtPeriod]
 				rtRuntime, runtimeExists := capacity[v1.ResourceRtRuntime]

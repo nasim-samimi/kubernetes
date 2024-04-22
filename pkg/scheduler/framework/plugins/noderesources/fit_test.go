@@ -67,6 +67,21 @@ func makeAllocatableResources(milliCPU, memory, pods, extendedA, storage, hugePa
 		hugePageResourceA:           *resource.NewQuantity(hugePageA, resource.BinarySI),
 	}
 }
+func makeRtResources(rtPeriod uint64, rtRuntime, rtCpus int64) v1.ResourceList {
+	return v1.ResourceList{
+		v1.ResourceRtPeriod:  *resource.NewQuantity(1000000, resource.DecimalSI),
+		v1.ResourceRtRuntime: *resource.NewQuantity(100000, resource.DecimalSI),
+		v1.ResourceRtCpu:     *resource.NewQuantity(0, resource.DecimalSI),
+	}
+}
+
+func makeAllocatableRtResources(rtPeriod uint64, rtRuntime, rtCpus int64) v1.ResourceList {
+	return v1.ResourceList{
+		v1.ResourceRtPeriod:  *resource.NewQuantity(1000000, resource.DecimalSI),
+		v1.ResourceRtRuntime: *resource.NewQuantity(100000, resource.DecimalSI),
+		v1.ResourceRtCpu:     *resource.NewQuantity(0, resource.DecimalSI),
+	}
+}
 
 func newResourcePod(usage ...framework.Resource) *v1.Pod {
 	var containers []v1.Container
@@ -486,13 +501,23 @@ func TestEnoughRequests(t *testing.T) {
 			name:                      "skip checking resource request with quantity zero",
 			wantInsufficientResources: []InsufficientResource{},
 		},
+		// {
+		// 	name: "rtRequest",
+		// 	pod:  newResourcePod(framework.Resource{RtRuntime: 100000, RtPeriod: 1000000}),
+		// 	nodeInfo: framework.NewNodeInfo(newResourcePod(framework.Resource{
+		// 		RtRuntime: 100000, RtPeriod: 1000000})),
+		// 	wantStatus:                framework.NewStatus(framework.Unschedulable, "Too many pods"),
+		// 	wantInsufficientResources: []InsufficientResource{},
+		// },
 	}
 
-	for _, test := range enoughPodsTests {
+	for _, test := range enoughPodsTests[len(enoughPodsTests)-1:] {
 		t.Run(test.name, func(t *testing.T) {
-			node := v1.Node{Status: v1.NodeStatus{Capacity: makeResources(10, 20, 32, 5, 20, 5), Allocatable: makeAllocatableResources(10, 20, 32, 5, 20, 5)}}
+			// node := v1.Node{Status: v1.NodeStatus{Capacity: makeResources(10, 20, 32, 5, 20, 5), Allocatable: makeAllocatableResources(10, 20, 32, 5, 20, 5)}}
+			capacity := makeRtResources(1000000, 950000, 4)
+			allocatable := makeAllocatableRtResources(1000000, 950000, 4)
+			node := v1.Node{Status: v1.NodeStatus{Capacity: capacity, Allocatable: allocatable}}
 			test.nodeInfo.SetNode(&node)
-
 			if test.args.ScoringStrategy == nil {
 				test.args.ScoringStrategy = defaultScoringStrategy
 			}

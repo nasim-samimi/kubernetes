@@ -141,12 +141,12 @@ func (c *podResourceCollector) CollectWithStability(ch chan<- metrics.Metric) {
 					unitName = "bytes"
 				case v1.ResourceEphemeralStorage:
 					unitName = "bytes"
-				case v1.ResourceRtCPU:
-					unitName = "cores"
-				case v1.ResourceRtRuntime:
-					unitName = "milli seconds"
-				case v1.ResourceRtPeriod:
-					unitName = "milli seconds"
+				// case v1.ResourceRtCpu:
+				// 	unitName = "cores"
+				// case v1.ResourceRtRuntime:
+				// 	unitName = "micro seconds"
+				// case v1.ResourceRtPeriod:
+				// 	unitName = "micro seconds"
 				default:
 					switch {
 					case v1helper.IsHugePageResourceName(resourceName):

@@ -295,6 +295,8 @@ type KubeletConfiguration struct {
 	// CPURuntime sets the the CPU period of time in microseconds for the longest continuous period in which the tasks
 	// in a cgroup have access to CPU resources. Applicable to real-time scheduling tasks only. cpu.rt_runtime_us
 	RTRuntime metav1.Duration
+	// // Real-time utilization according to period and runtime. Applicable to real-time scheduling tasks only.
+	// RTUtilization float64
 	// maxOpenFiles is Number of files that can be opened by Kubelet process.
 	MaxOpenFiles int64
 	// nodeStatusMaxImages caps the number of images reported in Node.Status.Images.

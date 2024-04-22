@@ -297,11 +297,6 @@ func (in *KubeletConfiguration) DeepCopyInto(out *KubeletConfiguration) {
 		*out = new(v1.Duration)
 		**out = **in
 	}
-	if in.NodeStatusMaxImages != nil {
-		in, out := &in.NodeStatusMaxImages, &out.NodeStatusMaxImages
-		*out = new(int32)
-		**out = **in
-	}
 	if in.RTHCBS != nil {
 		in, out := &in.RTHCBS, &out.RTHCBS
 		*out = new(bool)
@@ -315,6 +310,11 @@ func (in *KubeletConfiguration) DeepCopyInto(out *KubeletConfiguration) {
 	if in.RTPeriod != nil {
 		in, out := &in.RTPeriod, &out.RTPeriod
 		*out = new(v1.Duration)
+		**out = **in
+	}
+	if in.NodeStatusMaxImages != nil {
+		in, out := &in.NodeStatusMaxImages, &out.NodeStatusMaxImages
+		*out = new(int32)
 		**out = **in
 	}
 	if in.KubeAPIQPS != nil {

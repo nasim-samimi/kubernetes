@@ -581,12 +581,12 @@ func CpuWeightToCpuShares(cpuWeight uint64) uint64 {
 }
 
 func getCgroupv1CpuConfig(cgroupPath string) (*ResourceConfig, error) {
-	schedRuntime, errRT := fscommon.GetCgroupParamUint(cgroupPath, "cpu.sched_runtime_us")
+	schedRuntime, errRT := fscommon.GetCgroupParamUint(cgroupPath, "cpu.rt_runtime_us")
 	cpuRTRuntime := int64(schedRuntime)
 	if errRT == nil {
 		// Assume other sched_deadline parameters are present if runtime is successfully read
-		schedPeriod, _ := fscommon.GetCgroupParamUint(cgroupPath, "cpu.sched_period_us")
-
+		schedPeriod, _ := fscommon.GetCgroupParamUint(cgroupPath, "cpu.rt_period_us")
+		fmt.Println("getCgroupv1CpuConfig, schedPeriod: ", schedPeriod)
 		return &ResourceConfig{
 			CpuRtRuntime: &cpuRTRuntime,
 			CpuRtPeriod:  &schedPeriod,
@@ -617,21 +617,21 @@ func getSchedDeadlineConfig(cgroupPath string) (*int64, *uint64, error) {
 	// For demonstration purposes only
 	schedRuntimeStr, errR := fscommon.GetCgroupParamString(cgroupPath, "cpu.rt_runtime_us")
 	if errR != nil {
-		return nil, nil, fmt.Errorf("failed to read sched_runtime for cgroup %v: %v", cgroupPath, errR)
+		return nil, nil, fmt.Errorf("failed to read rt_runtime for cgroup %v: %v", cgroupPath, errR)
 	}
 	schedRuntime, errConvR := strconv.ParseInt(schedRuntimeStr, 10, 64)
 	if errConvR != nil {
-		return nil, nil, fmt.Errorf("failed to convert sched_runtime to integer for cgroup %v: %v", cgroupPath, errConvR)
+		return nil, nil, fmt.Errorf("failed to convert rt_runtime to integer for cgroup %v: %v", cgroupPath, errConvR)
 	}
 
 	// Assuming sched_period_us is equivalent to sched_deadline_us for simplicity in this hypothetical context
 	schedPeriodStr, errP := fscommon.GetCgroupParamString(cgroupPath, "cpu.rt_period_us")
 	if errP != nil {
-		return nil, nil, fmt.Errorf("failed to read sched_period for cgroup %v: %v", cgroupPath, errP)
+		return nil, nil, fmt.Errorf("failed to read rt_period for cgroup %v: %v", cgroupPath, errP)
 	}
 	schedPeriod, errConvP := strconv.ParseUint(schedPeriodStr, 10, 64)
 	if errConvP != nil {
-		return nil, nil, fmt.Errorf("failed to convert sched_period to integer for cgroup %v: %v", cgroupPath, errConvP)
+		return nil, nil, fmt.Errorf("failed to convert rt_period to integer for cgroup %v: %v", cgroupPath, errConvP)
 	}
 
 	return &schedRuntime, &schedPeriod, nil
@@ -640,6 +640,7 @@ func getSchedDeadlineConfig(cgroupPath string) (*int64, *uint64, error) {
 func getCgroupv2CpuConfig(cgroupPath string) (*ResourceConfig, error) {
 	schedRuntime, schedPeriod, errrt := getSchedDeadlineConfig(cgroupPath)
 	if errrt == nil {
+		fmt.Println("getCgroupv2CpuConfig, schedPeriod: ", schedPeriod)
 		return &ResourceConfig{CpuRtRuntime: schedRuntime, CpuRtPeriod: schedPeriod}, nil
 	}
 

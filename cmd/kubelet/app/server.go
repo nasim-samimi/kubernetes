@@ -1350,6 +1350,16 @@ func parseResourceList(m map[string]string) (v1.ResourceList, error) {
 				return nil, fmt.Errorf("resource quantity for %q cannot be negative: %v", k, v)
 			}
 			rl[v1.ResourceName(k)] = q
+			//TODO: //for Nasim case v1.ResourceRtRun need to calculate the reserved resource for rt values
+			//it will be then used in node_container_manager_linux.go to get the absolute values.
+		// case v1.ResourceRtUtilization:
+		// 	q, err := resource.ParseQuantity(v)
+		// 	if err != nil {
+		// 		return nil, fmt.Errorf("failed to parse quantity %q for %q resource: %w", v, k, err)
+		// 	}
+		// 	if q.Sign() == -1 {
+		// 		return nil, fmt.Errorf("resource quantity for %q cannot be negative: %v", k, v)
+		// 	}
 		default:
 			return nil, fmt.Errorf("cannot reserve %q resource", k)
 		}

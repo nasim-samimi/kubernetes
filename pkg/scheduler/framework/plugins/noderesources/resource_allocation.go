@@ -60,21 +60,22 @@ func (r *resourceAllocationScorer) score(
 
 	requested := make([]int64, len(r.resources))
 	allocatable := make([]int64, len(r.resources))
+	// allocUtilization, reqUtilization := calculateResourceRTUtilizationAllocatableRequest(nodeInfo, pod)
 	for i := range r.resources {
 		alloc, req := r.calculateResourceAllocatableRequest(logger, nodeInfo, v1.ResourceName(r.resources[i].Name), podRequests[i])
 		// Only fill the extended resource entry when it's non-zero.
 		if alloc == 0 {
+			// if reqUtilization != 0 {
+			// 	allocatable[i] = allocUtilization
+			// 	requested[i] = reqUtilization
 			continue
+			// }
 		}
 		allocatable[i] = alloc
 		requested[i] = req
 	}
 
 	// not sure about the changes I made here
-	allocUtilization, reqUtilization := calculateResourceRTUtilizationAllocatableRequest(nodeInfo, pod)
-	if reqUtilization != 0 {
-		allocatable[framework.RtUtilizationScale], requested[framework.RtUtilizationScale] = allocUtilization, reqUtilization
-	}
 	score := r.scorer(requested, allocatable)
 
 	if loggerV := logger.V(10); loggerV.Enabled() { // Serializing these maps is costly.
@@ -118,18 +119,18 @@ func (r *resourceAllocationScorer) calculateResourceAllocatableRequest(logger kl
 	return 0, 0
 }
 
-func calculateResourceRTUtilizationAllocatableRequest(nodeInfo *framework.NodeInfo, pod *v1.Pod) (int64, int64) {
-	allocatable := nodeInfo.Allocatable
+// func calculateResourceRTUtilizationAllocatableRequest(nodeInfo *framework.NodeInfo, pod *v1.Pod) (int64, int64) {
+// 	allocatable := nodeInfo.Allocatable
 
-	rtUtil, _ := framework.CalculatePodRtUtilAndCpu(pod)
+// 	rtUtil, _ := framework.CalculatePodRtUtilAndCpu(pod)
 
-	if rtUtil != 0 {
-		allocUtilization := allocatable.RtUtilization()
-		reqUtilization := nodeInfo.NonZeroRequested.RtUtilization() + rtUtil
-		return allocUtilization, reqUtilization
-	}
-	return 0, 0
-}
+// 	if rtUtil != 0 {
+// 		allocUtilization := allocatable.RtUtilization()
+// 		reqUtilization := nodeInfo.NonZeroRequested.RtUtilization() + rtUtil
+// 		return allocUtilization, reqUtilization
+// 	}
+// 	return 0, 0
+// }
 
 // calculatePodResourceRequest returns the total non-zero requests. If Overhead is defined for the pod
 // the Overhead is added to the result.

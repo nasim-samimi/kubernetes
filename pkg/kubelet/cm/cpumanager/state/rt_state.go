@@ -62,7 +62,7 @@ func (s *RtState) SetRtCPUSetAndUtilOfContainer(podUID string, containerName str
 
 func (s *RtState) Delete(podUID string, containerName string) {
 
-	cpuSet, ok := s.GetCPUSet(podUID, containerName)
+	_, ok := s.GetCPUSet(podUID, containerName)
 	if !ok {
 		panic("manage this error")
 	}
